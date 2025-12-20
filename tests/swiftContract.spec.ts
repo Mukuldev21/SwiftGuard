@@ -1,5 +1,5 @@
-const { test, expect } = require('@playwright/test');
-const { generateValidMT103, generateInvalidMT103 } = require('../llm/swiftGenerator');
+import { test, expect } from '@playwright/test';
+import { generateValidMT103, generateInvalidMT103 } from '../llm/swiftGenerator';
 
 test.describe('SwiftGuard Contract Tests', () => {
 
