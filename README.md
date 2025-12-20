@@ -1,4 +1,6 @@
 # SwiftGuard
+![SwiftGuard Logo](docs/swiftguardhome.png)
+
 **LLM-Driven Contract Testing for SWIFT Microservices**
 
 ## Overview
@@ -15,6 +17,8 @@ SwiftGuard is a lightweight, dependency-minimal contract testing framework desig
 SwiftGuard integrates with **Google Gemini (via `@google/genai`)** to dynamically generate test data. Instead of relying on static `.json` or `.xml` stovepipes, we use the LLM as an intelligent fuzzer.
 
 ### The Workflow
+![SwiftGuard Flow](docs/swiftguardflow.png)
+
 1.  **Prompt Engineering**: We feed Gemini a strict prompt defining the SWIFT MT103 structure (e.g., Mandatory tags `:20:`, `:32A:`, `:50K:`).
 2.  **Dynamic Generation**: 
     *   **Valid Scenario**: We ask Gemini to "Generate a valid MT103 message with strict SWIFT tags."
