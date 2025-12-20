@@ -1,0 +1,44 @@
+{
+    "type": "object",
+    "properties": {
+        "transactionReference": {
+            "type": "string",
+            "description": "Tag :20: - Transaction Reference Number"
+        },
+        "bankOperationCode": {
+            "type": "string",
+            "description": "Tag :23B: - Bank Operation Code",
+            "pattern": "^[A-Z0-9]{4}$"
+        },
+        "valueDateCurrencyAmount": {
+            "type": "string",
+            "description": "Tag :32A: - Date, Currency, Amount"
+        },
+        "orderingCustomer": {
+            "type": "string",
+            "description": "Tag :50K: - Ordering Customer"
+        },
+        "beneficiaryCustomer": {
+            "type": "string",
+            "description": "Tag :59: - Beneficiary Customer"
+        },
+        "charges": {
+            "type": "string",
+            "description": "Tag :71A: - Details of Charges",
+            "enum": [
+                "OUR",
+                "BEN",
+                "SHA"
+            ]
+        }
+    },
+    "required": [
+        "transactionReference",
+        "bankOperationCode",
+        "valueDateCurrencyAmount",
+        "orderingCustomer",
+        "beneficiaryCustomer",
+        "charges"
+    ],
+    "additionalProperties": false
+}
