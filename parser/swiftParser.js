@@ -41,10 +41,11 @@ function parseSwiftMessage(message) {
                 currentTag = null; // Unknown tag
             }
         } else if (currentTag && result[currentTag]) {
+            // IGNORE envelopes or block separators
+            if (line.startsWith('{') || line.startsWith('-') || line.startsWith('}')) {
+                return;
+            }
             // Handle multiline values (append to previous tag)
-            // For simplicity in this blueprint, we might validly just append with newline
-            // But for fields like 50K or 59, it's often address lines.
-            // We'll just join them with space or keep newline.
             result[currentTag] += '\n' + line.trim();
         }
     });

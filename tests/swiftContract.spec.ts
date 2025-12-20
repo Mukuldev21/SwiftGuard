@@ -37,6 +37,44 @@ test.describe('SwiftGuard Contract Tests', () => {
         await expect(page.locator('#op-code')).not.toBeEmpty();
     });
 
+    test('TC003: Validate Parser Resilience (API + UI)', async ({ request, page }) => {
+        test.setTimeout(30000);
+        // 1. Generate Valid SWIFT Message
+        let baseMessage = await generateValidMT103();
+
+        // 2. Wrap it in a SWIFT Envelope and add random whitespace
+        // Ensure newlines are explicit to strictly separate blocks
+        const envelopedMessage =
+            "{1:F01BANKBEBBAXXX0000000000}\n" +
+            "{2:I103BANKBEBBAXXXN}\n" +
+            "{4:\n" +
+            baseMessage + "\n" +
+            "-}\n" +
+            "{5:{CHK:1234567890AB}}";
+
+        console.log('Generated Enveloped Message:\n', envelopedMessage);
+
+        // 3. Submit to API
+        const response = await request.post('/swift', {
+            data: envelopedMessage,
+            headers: { 'Content-Type': 'text/plain' }
+        });
+
+        expect(response.ok()).toBeTruthy();
+        const json = await response.json();
+
+        // 4. Verify API Accepts it (Parser should have stripped envelopes)
+        expect(json.status).toBe('success');
+        expect(json.valid).toBe(true);
+        expect(json.data.transactionReference).toBeTruthy();
+
+        // 5. Verify UI
+        await page.goto('/');
+        await expect(page.locator('#status-badge')).toHaveText('Contract Valid', { timeout: 10000 });
+        // Ensure parsing worked and we see data, not garbage
+        await expect(page.locator('#tx-ref')).not.toBeEmpty();
+    });
+
     test('TC002: Validate Invalid MT103 Contract (Schema Enforcement)', async ({ request, page }) => {
         test.setTimeout(30000); // Increase timeout for LLM
         // 1. Generate Invalid SWIFT Message
