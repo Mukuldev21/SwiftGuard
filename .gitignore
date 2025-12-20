@@ -1,0 +1,5 @@
+node_modules
+.env
+playwright-report
+test-results
+fix_port.ps1
