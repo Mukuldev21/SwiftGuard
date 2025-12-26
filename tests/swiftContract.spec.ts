@@ -145,4 +145,44 @@ test.describe('SwiftGuard Contract Tests', () => {
         await expect(page.locator('#raw-message')).toContainText(expectedRef);
     });
 
+    test('TC005: Validate LLM Fallback (API + UI)', async ({ request, page }) => {
+        // 1. Simulate LLM Outage by unsetting API KEY
+        const originalKey = process.env.GEMINI_API_KEY;
+        delete process.env.GEMINI_API_KEY;
+
+        console.log('TC005: Simulating LLM outage...');
+
+        try {
+            // 2. Attempt to Generate Token (Should use fallback)
+            const fallbackMessage = await generateValidMT103();
+
+            // 3. Verify it is a Stub
+            expect(fallbackMessage).toContain('REF_STUB');
+            console.log('TC005: Fallback engaged. Generated:\n', fallbackMessage);
+
+            // 4. Submit Stub Verification
+            // The system should still accept valid stubs as regular traffic
+            const response = await request.post('/swift', {
+                data: fallbackMessage,
+                headers: { 'Content-Type': 'text/plain' }
+            });
+
+            expect(response.ok()).toBeTruthy();
+            const json = await response.json();
+
+            expect(json.status).toBe('success');
+            expect(json.valid).toBe(true);
+            expect(json.data.transactionReference).toContain('REF_STUB');
+
+            // 5. Verify UI
+            await page.goto('/');
+            await expect(page.locator('#status-badge')).toHaveText('Contract Valid', { timeout: 10000 });
+            await expect(page.locator('#tx-ref')).toContainText('REF_STUB');
+
+        } finally {
+            // Restore Key for other tests
+            process.env.GEMINI_API_KEY = originalKey;
+        }
+    });
+
 });
