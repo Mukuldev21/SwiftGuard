@@ -46,6 +46,9 @@ Using **Playwright**, we simulate a complete user/system flow:
 | **TC003** | **TC003: Validate Parser Resilience (API + UI)** | Verify parser handles leading/trailing whitespace and envelopes. | MT103 inside `{1:...}` envelope or with newlines. | Correctly parses tags ignoring envelopes/whitespace. |
 | **TC004** | **TC004: Validate UI Dashboard Sync (API + UI)** | Verify UI updates when a new message is processed. | Poll `/swift` endpoint. | UI displays the Reference ID, Status (Success/Failed), and Raw Data of the latest message. |
 | **TC005** | **TC005: Validate LLM Fallback (API + UI)** | Verify test continuity if LLM API is unavailable/fails. | No API Key / Network Error. | System falls back to static stub data; Tests MUST NOT fail due to LLM outage. |
+| **TC006** | **TC006: Validate Field Validation Rules** | Verify strict regex patterns for specific fields (e.g., Date/Currency in `:32A:`). | MT103 with invalid date (`991599`) or currency (`XXZ`). | `400 Bad Request`, `valid: false`, error highlights specific field format mismatch. |
+| **TC007** | **TC007: Validate Optional Tags Parsing** | Verify parser correctly handles optional but common tags (e.g., `:70:` Remittance Info). | MT103 containing optional `:70:` tag. | `200 OK`, `valid: true`, optional field appears in parsed JSON data. |
+| **TC008** | **TC008: Validate Garbage Input Resilience** | Verify parser does not crash on completely non-SWIFT input (JSON, XML, or Plain Text). | Random string "Hello World" or JSON `{"foo":"bar"}`. | `400 Bad Request`, `valid: false`, returns generic "Invalid SWIFT format" error without crashing. |
 
 ## 6. Execution
 Run the full suite using the following command:

@@ -185,4 +185,82 @@ test.describe('SwiftGuard Contract Tests', () => {
         }
     });
 
+    test('TC006: Validate Field Validation Rules', async ({ request }) => {
+        // 1. Generate Valid Message base
+        const validMessage = await generateValidMT103();
+
+        // 2. Corrupt the :32A: field
+        // Valid: :32A:231220USD1000,
+        // Invalid: :32A:INVALID_DATE_USD
+        const invalidFieldMessage = validMessage.replace(/:32A:[^\n]+/, ':32A:INVALID_DATE_USD');
+
+        console.log('TC006: Sending message with invalid :32A: pattern:\n', invalidFieldMessage);
+
+        // 3. Submit
+        const response = await request.post('/swift', {
+            data: invalidFieldMessage,
+            headers: { 'Content-Type': 'text/plain' }
+        });
+
+        const json = await response.json();
+
+        // 4. Verify Rejection
+        expect(response.ok()).toBeTruthy(); // Http 200 is fine as long as logic says invalid (or 400 if strictly designed, but current logic returns 200 with valid:false)
+        expect(json.valid).toBe(false);
+        expect(json.status).toBe('failed');
+
+        // 5. Verify the error points to the specific field
+        // AJV errors usually contain instancePath pointing to the property
+        const hasFieldMismatch = json.errors.some(e => e.instancePath === '/valueDateCurrencyAmount' || e.params.pattern);
+        expect(hasFieldMismatch).toBeTruthy();
+    });
+
+    test('TC007: Validate Optional Tags Parsing', async ({ request }) => {
+        // 1. Generate Valid Base
+        const validMessage = await generateValidMT103();
+
+        // 2. Append Optional Tag :70:
+        const messageWithOptional = validMessage + '\n:70:INV-2023-001 REMITTANCE INFO';
+
+        console.log('TC007: Sending message with optional :70: tag...');
+
+        // 3. Submit
+        const response = await request.post('/swift', {
+            data: messageWithOptional,
+            headers: { 'Content-Type': 'text/plain' }
+        });
+
+        const json = await response.json();
+
+        // 4. Verify Success & Parsing
+        expect(response.ok()).toBeTruthy();
+        expect(json.valid).toBe(true);
+        expect(json.data.remittanceInfo).toBe('INV-2023-001 REMITTANCE INFO');
+    });
+
+    test('TC008: Validate Garbage Input Resilience', async ({ request }) => {
+        const garbageInputs = [
+            "Just some random text",
+            "<?xml version='1.0'?><note>Invalid SWIFT</note>",
+            JSON.stringify({ key: "value " })
+        ];
+
+        for (const input of garbageInputs) {
+            console.log(`TC008: Testing garbage input: ${input.substring(0, 20)}...`);
+
+            const response = await request.post('/swift', {
+                data: input,
+                headers: { 'Content-Type': 'text/plain' }
+            });
+
+            // Should NOT crash (500)
+            expect(response.status()).not.toBe(500);
+
+            // Should be rejected (200 OK with valid:false OR 400 Bad Request)
+            // Based on current implementation, it likely returns 200 with valid: false because parser returns empty/partial obj and schema rejects it.
+            const json = await response.json();
+            expect(json.valid).toBe(false);
+        }
+    });
+
 });

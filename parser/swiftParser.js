@@ -22,7 +22,8 @@ function parseSwiftMessage(message) {
         ':32A:': 'valueDateCurrencyAmount',
         ':50K:': 'orderingCustomer',
         ':59:': 'beneficiaryCustomer',
-        ':71A:': 'charges'
+        ':71A:': 'charges',
+        ':70:': 'remittanceInfo'
     };
 
     let currentTag = null;

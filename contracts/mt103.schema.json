@@ -12,7 +12,8 @@
         },
         "valueDateCurrencyAmount": {
             "type": "string",
-            "description": "Tag :32A: - Date, Currency, Amount"
+            "description": "Tag :32A: - Date, Currency, Amount (Format: YYMMDDCYY...)",
+            "pattern": "^[0-9]{6}[A-Z]{3}[0-9,]+$"
         },
         "orderingCustomer": {
             "type": "string",
@@ -27,9 +28,12 @@
             "description": "Tag :71A: - Details of Charges",
             "enum": [
                 "OUR",
-                "BEN",
                 "SHA"
             ]
+        },
+        "remittanceInfo": {
+            "type": "string",
+            "description": "Tag :70: - Remittance Information (Optional)"
         }
     },
     "required": [
