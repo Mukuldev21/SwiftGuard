@@ -14,15 +14,15 @@ SwiftGuard is a lightweight, dependency-minimal contract testing framework desig
 
 ## How It Works: LLM-Driven Data Generation
 
-SwiftGuard integrates with **Google Gemini (via `@google/genai`)** to dynamically generate test data. Instead of relying on static `.json` or `.xml` stovepipes, we use the LLM as an intelligent fuzzer.
+SwiftGuard connects to **Generative AI Providers** (Google Gemini, DeepSeek, Groq, Puter) to dynamically generate test data. Instead of relying on static `.json` or `.xml` stovepipes, we use the LLM as an intelligent fuzzer.
 
 ### The Workflow
 ![SwiftGuard Flow](docs/swiftguardflow.png)
 
-1.  **Prompt Engineering**: We feed Gemini a strict prompt defining the SWIFT MT103 structure (e.g., Mandatory tags `:20:`, `:32A:`, `:50K:`).
+1.  **Prompt Engineering**: We feed the AI a strict prompt defining the SWIFT MT103 structure (e.g., Mandatory tags `:20:`, `:32A:`, `:50K:`).
 2.  **Dynamic Generation**: 
-    *   **Valid Scenario**: We ask Gemini to "Generate a valid MT103 message with strict SWIFT tags."
-    *   **Invalid Scenario**: We ask Gemini to "Generate an INVALID message missing mandatory tag :23B:."
+    *   **Valid Scenario**: We ask the AI to "Generate a valid MT103 message with strict SWIFT tags."
+    *   **Invalid Scenario**: We ask the AI to "Generate an INVALID message missing mandatory tag :23B:."
 3.  **Validation**:
     *   The generated message is sent to our local microservice (`POST /swift`).
     *   The service parses the message and validates it against a strict **JSON Schema**.
@@ -32,7 +32,8 @@ This approach ensures that your microservice is battle-tested against non-determ
 
 ## Features
 
--   **AI-Powered Fuzzing**: Uses `gemini-2.5-flash` to generate endless unique SWIFT message variations.
+-   **Multi-LLM Support**: Switch between **Gemini**, **DeepSeek**, **Groq**, and **Puter.ai** based on your needs or quota.
+-   **AI-Powered Fuzzing**: Generates endless unique SWIFT message variations using state-of-the-art models.
 -   **Strict Schema Validation**: Uses `Ajv` (Another JSON Schema Validator) to enforce business rules.
 -   **HTML-Only Dashboard**: A lightweight, glassmorphism-styled UI to visualize processed messages in real-time.
 -   **End-to-End Testing**: Integrated `Playwright` tests verify the entire flow (Generation -> API -> UI).
@@ -40,8 +41,7 @@ This approach ensures that your microservice is battle-tested against non-determ
 ## Prerequisites
 
 -   Node.js v18+
--   A Google Cloud Project with Gemini API enabled.
--   An API Key.
+-   An API Key for your chosen LLM Provider (Google Gemini, DeepSeek, or Groq).
 
 ## Installation
 
@@ -57,9 +57,25 @@ This approach ensures that your microservice is battle-tested against non-determ
     ```
 
 3.  **Configure Environment**:
-    Create a `.env` file in the root directory:
+    Create a `.env` file in the root directory and add the key for your active provider:
     ```env
-    GEMINI_API_KEY=your_actual_api_key_here
+    # Option 1: Google Gemini
+    GEMINI_API_KEY=your_gemini_key
+
+    # Option 2: DeepSeek AI
+    DEEPSEEK_API_KEY=your_deepseek_key
+
+    # Option 3: Groq AI
+    GROQ_API_KEY=your_groq_key
+    ```
+
+4.  **Select LLM Provider**:
+    Open `llm/swiftGenerator.js` and uncomment the provider you wish to use:
+    ```javascript
+    // const generator = require('./geminiGenerator'); 
+    // const generator = require('./puterGenerator');
+    // const generator = require('./deepseekGenerator');
+    const generator = require('./groqGenerator'); // Active
     ```
 
 ## Usage
