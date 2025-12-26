@@ -15,7 +15,10 @@
     "@playwright/test": "^1.57.0",
     "ajv": "^8.17.1",
     "dotenv": "^17.2.3",
-    "playwright": "^1.57.0"
+    "groq-sdk": "^0.37.0",
+    "openai": "^6.15.0",
+    "playwright": "^1.57.0",
+    "puter": "^1.0.0"
   },
   "devDependencies": {
     "@types/node": "^25.0.3"
