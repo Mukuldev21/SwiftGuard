@@ -105,4 +105,44 @@ test.describe('SwiftGuard Contract Tests', () => {
         await expect(page.locator('#error-list li')).toBeVisible();
     });
 
+    test('TC004: Validate UI Dashboard Sync (API + UI)', async ({ request, page }) => {
+        test.setTimeout(45000); // Higher timeout for polling + LLM
+
+        // 1. Open Dashboard (Pre-condition)
+        // Note: It might show previous test data, which is fine. We verify it UPDATES.
+        await page.goto('/');
+
+        // 2. Generate a NEW Valid SWIFT Message
+        const validMessage = await generateValidMT103();
+
+        // 3. Submit to API via backend (simulating external system)
+        const response = await request.post('/swift', {
+            data: validMessage,
+            headers: { 'Content-Type': 'text/plain' }
+        });
+        expect(response.ok()).toBeTruthy();
+        const json = await response.json();
+
+        // Capture the expected values from the API response
+        const expectedRef = json.data.transactionReference;
+        const expectedAmount = json.data.valueDateCurrencyAmount;
+
+        console.log(`TC004: Sent message with Ref ${expectedRef}. Waiting for UI sync...`);
+
+        // 4. Verify UI Auto-Sync (Polling Verification)
+        // The UI should pick this up automatically within ~2 seconds (poll interval is 2s)
+
+        // Check Status Badge
+        await expect(page.locator('#status-badge')).toHaveText('Contract Valid', { timeout: 15000 });
+        await expect(page.locator('#status-badge')).toHaveClass(/status-success/);
+
+        // Check Specific Data Fields match the NEW message
+        await expect(page.locator('#tx-ref')).toHaveText(expectedRef);
+        await expect(page.locator('#amount')).toHaveText(expectedAmount);
+
+        // Check Raw Data
+        // The raw message in UI should contain the unique Reference
+        await expect(page.locator('#raw-message')).toContainText(expectedRef);
+    });
+
 });
