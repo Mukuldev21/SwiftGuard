@@ -169,4 +169,33 @@ test.describe('Banking Compliance Tests (ISO 20022 & RBI)', () => {
         expect(JSON.stringify(json.errors)).toMatch(/Duplicate|Reference already exists/i);
     });
 
+    test('BTC006: Cut-Off Time Handling (RBI)', async ({ request }) => {
+        test.setTimeout(45000);
+        console.log('BTC006: RBI Compliance - Verifying Cut-Off Queueing');
+
+        // 1. Generate Valid MT103
+        const validMessage = await generateValidMT103();
+
+        // 2. Submit with Late Time (e.g., 18:30 Local Time)
+        const lateTime = new Date();
+        lateTime.setHours(18, 30, 0, 0); // Set to 18:30 Local Time
+
+        const response = await request.post('/swift', {
+            data: validMessage,
+            headers: {
+                'Content-Type': 'text/plain',
+                'X-Simulated-Time': lateTime.toISOString()
+            }
+        });
+
+        // 3. Verify Response (202 Accepted - Queued)
+        const status = response.status();
+        expect(status).toBe(202);
+
+        const json = await response.json();
+        expect(json.status).toBe('queued');
+        expect(json.valid).toBe(true);
+        expect(json.message).toMatch(/cut-off|next business day/i);
+    });
+
 });

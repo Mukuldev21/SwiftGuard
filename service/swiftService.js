@@ -52,6 +52,26 @@ const server = http.createServer((req, res) => {
                     timestamp: timestamp
                 };
 
+                // Cut-Off Time Check (BTC006 - RBI Requirement)
+                // Default cut-off is 17:00 local time. Use header for simulation.
+                const simulatedTime = req.headers['x-simulated-time'];
+                const now = simulatedTime ? new Date(simulatedTime) : new Date();
+
+                // Check if time is valid, else fallback to now
+                const checkTime = isNaN(now.getTime()) ? new Date() : now;
+                const hours = checkTime.getHours();
+
+                if (valid && hours >= 17) {
+                    response.status = 'queued';
+                    response.valid = true; // Message is valid, just queued
+                    response.message = 'Transaction received after cut-off time (17:00). Queued for next business day.';
+                    // We don't return 4xx because it's accepted, just delayed.
+                    // Status 202 Accepted is appropriate here.
+                    res.writeHead(202, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify(response));
+                    return;
+                }
+
                 // Duplicate Reference Check (Financial Integrity)
                 if (valid && parsedData.transactionReference) {
                     if (processedRefs.has(parsedData.transactionReference)) {
