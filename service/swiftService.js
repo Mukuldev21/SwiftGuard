@@ -39,7 +39,8 @@ const server = http.createServer((req, res) => {
                 const parsedData = parseSwiftMessage(body);
 
                 // Strict Schema Validation is handled by Ajv below
-                const valid = validate(parsedData);
+                // Also ensure basic structure exists (garbage data protection)
+                const valid = validate(parsedData) && !!parsedData.transactionReference;
 
                 const response = {
                     status: valid ? 'success' : 'failed',
