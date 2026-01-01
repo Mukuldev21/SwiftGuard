@@ -198,4 +198,38 @@ test.describe('Banking Compliance Tests (ISO 20022 & RBI)', () => {
         expect(json.message).toMatch(/cut-off|next business day/i);
     });
 
+    test('BTC007: Audit Trail & Traceability (Compliance)', async ({ request }) => {
+        console.log('BTC007: Compliance - Verifying Audit Fields');
+        const validMessage = await generateValidMT103();
+        const response = await request.post('/swift', {
+            data: validMessage,
+            headers: { 'Content-Type': 'text/plain' }
+        });
+
+        expect(response.ok()).toBeTruthy();
+        const json = await response.json();
+
+        // Check for Traceability Fields
+        expect(json).toHaveProperty('traceId');
+        expect(json).toHaveProperty('timestamp');
+        expect(json.traceId.length).toBeGreaterThan(10); // Ensure it's a UUID/valid ID
+    });
+
+    test('BTC008: System Resilience (Garbage In)', async ({ request }) => {
+        console.log('BTC008: Resilience - Handling Garbage Data');
+        const garbageData = "GARBAGE_DATA_12345_!@#$%^&*()";
+
+        const response = await request.post('/swift', {
+            data: garbageData,
+            headers: { 'Content-Type': 'text/plain' }
+        });
+
+        // Should handle gracefully (400 Bad Request), not crash (500)
+        expect(response.status()).toBe(400);
+
+        const json = await response.json();
+        expect(json.status).toBe('error');
+        expect(json.message).toMatch(/Parsing Failed/i);
+    });
+
 });

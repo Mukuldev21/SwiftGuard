@@ -38,8 +38,7 @@ const server = http.createServer((req, res) => {
                 // Parse the raw SWIFT message
                 const parsedData = parseSwiftMessage(body);
 
-                // Strict Parsing Check will be added later
-
+                // Strict Schema Validation is handled by Ajv below
                 const valid = validate(parsedData);
 
                 const response = {
