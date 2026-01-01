@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { generateValidMT103 } from '../llm/swiftGenerator';
+import { generateValidMT103, generateInvalidMT103, generateSanctionedMT103 } from '../llm/swiftGenerator';
 
 test.describe('Banking Compliance Tests (ISO 20022 & RBI)', () => {
 
@@ -101,6 +101,35 @@ test.describe('Banking Compliance Tests (ISO 20022 & RBI)', () => {
         const json = await response2.json();
         expect(json.status).toBe('failed');
         expect(JSON.stringify(json.errors)).toMatch(/Duplicate|Reference already exists/i);
+    });
+
+    test('BTC004: AML Sanction Screen (High-Risk Country)', async ({ request }) => {
+        test.setTimeout(45000);
+        console.log('BTC004: AML - Verifying Sanctioned Country Blocking');
+
+        // 1. Generate Sanctioned MT103
+        const sanctionedMessage = await generateSanctionedMT103();
+        console.log('Generated Sanctioned Message:\n', sanctionedMessage);
+
+        // 2. Submit to API
+        const response = await request.post('/swift', {
+            data: sanctionedMessage,
+            headers: {
+                'Content-Type': 'text/plain',
+                'X-Simulated-Time': '2023-10-25T10:00:00Z'
+            }
+        });
+
+        // 3. Verify Rejection (403 Forbidden)
+        const status = response.status();
+        expect(status).toBe(403);
+
+        const json = await response.json();
+        expect(json.status).toBe('blocked');
+        expect(json.valid).toBe(false);
+
+        const allErrors = JSON.stringify(json.errors);
+        expect(allErrors).toMatch(/AML Alert|Sanctioned|Blocked/i);
     });
 
 });

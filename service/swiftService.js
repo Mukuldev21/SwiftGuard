@@ -70,6 +70,29 @@ const server = http.createServer((req, res) => {
                     }
                 }
 
+                // AML Sanction Check (BTC004)
+                if (valid) {
+                    const sanctionList = ['KP', 'NORTH KOREA', 'IR', 'IRAN', 'SY', 'SYRIA', 'CU', 'CUBA'];
+                    const fieldsToCheck = [parsedData.beneficiaryCustomer, parsedData.orderingCustomer].filter(Boolean);
+
+                    const isSanctioned = fieldsToCheck.some(field =>
+                        sanctionList.some(sanc => field.toUpperCase().includes(sanc))
+                    );
+
+                    if (isSanctioned) {
+                        response.status = 'blocked';
+                        response.valid = false;
+                        response.errors = response.errors || [];
+                        response.errors.push({
+                            message: `AML Alert: Transaction blocked due to sanctioned country or entity.`
+                        });
+                        // Return 403 Forbidden
+                        res.writeHead(403, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify(response));
+                        return;
+                    }
+                }
+
                 lastProcessedMessage = response;
 
                 res.writeHead(200, { 'Content-Type': 'application/json' });
