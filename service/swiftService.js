@@ -40,7 +40,6 @@ const server = http.createServer((req, res) => {
 
                 // Strict Parsing Check will be added later
 
-                // Validate against schema
                 const valid = validate(parsedData);
 
                 const response = {
@@ -52,6 +51,24 @@ const server = http.createServer((req, res) => {
                     traceId: traceId,
                     timestamp: timestamp
                 };
+
+                // Duplicate Reference Check (Financial Integrity)
+                if (valid && parsedData.transactionReference) {
+                    if (processedRefs.has(parsedData.transactionReference)) {
+                        response.status = 'failed';
+                        response.valid = false;
+                        response.errors = response.errors || [];
+                        response.errors.push({
+                            message: `Duplicate Transaction Reference: ${parsedData.transactionReference} already exists.`
+                        });
+                        // Return 409 Conflict for duplicate
+                        res.writeHead(409, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify(response));
+                        return;
+                    } else {
+                        processedRefs.add(parsedData.transactionReference);
+                    }
+                }
 
                 lastProcessedMessage = response;
 

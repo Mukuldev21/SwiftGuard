@@ -68,4 +68,39 @@ test.describe('Banking Compliance Tests (ISO 20022 & RBI)', () => {
         expect(allErrors).toMatch(/Missing mandatory tag|validation failed|schema violation|required property|must have required property/i);
     });
 
+    test('BTC003: Duplicate Reference Check (Financial Integrity)', async ({ request }) => {
+        test.setTimeout(45000);
+        console.log('BTC003: Financial Integrity - Verifying Duplicate Reference Rejection');
+
+        // 1. Generate Valid MT103
+        const validMessage = await generateValidMT103();
+
+        // 2. Submit First Time (Should Succeed)
+        const response1 = await request.post('/swift', {
+            data: validMessage,
+            headers: {
+                'Content-Type': 'text/plain',
+                'X-Simulated-Time': '2023-10-25T10:00:00Z'
+            }
+        });
+        expect(response1.ok()).toBeTruthy();
+
+        // 3. Submit Second Time (Should Fail)
+        const response2 = await request.post('/swift', {
+            data: validMessage,
+            headers: {
+                'Content-Type': 'text/plain',
+                'X-Simulated-Time': '2023-10-25T10:00:00Z'
+            }
+        });
+
+        // 4. Verify Rejection
+        const status = response2.status();
+        expect([409, 400]).toContain(status);
+
+        const json = await response2.json();
+        expect(json.status).toBe('failed');
+        expect(JSON.stringify(json.errors)).toMatch(/Duplicate|Reference already exists/i);
+    });
+
 });
