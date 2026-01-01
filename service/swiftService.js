@@ -10,6 +10,7 @@ const validate = ajv.compile(schema);
 
 const PORT = 1934;
 let lastProcessedMessage = null;
+const processedRefs = new Set();
 
 const server = http.createServer((req, res) => {
     // Enable CORS for local testing if needed
@@ -29,9 +30,15 @@ const server = http.createServer((req, res) => {
             body += chunk.toString();
         });
         req.on('end', () => {
+            // Traceability Fields
+            const traceId = require('crypto').randomUUID();
+            const timestamp = new Date().toISOString();
+
             try {
                 // Parse the raw SWIFT message
                 const parsedData = parseSwiftMessage(body);
+
+                // Strict Parsing Check will be added later
 
                 // Validate against schema
                 const valid = validate(parsedData);
@@ -41,7 +48,9 @@ const server = http.createServer((req, res) => {
                     valid: valid,
                     errors: validate.errors,
                     data: parsedData,
-                    raw: body
+                    raw: body,
+                    traceId: traceId,
+                    timestamp: timestamp
                 };
 
                 lastProcessedMessage = response;
@@ -49,8 +58,15 @@ const server = http.createServer((req, res) => {
                 res.writeHead(200, { 'Content-Type': 'application/json' });
                 res.end(JSON.stringify(response));
             } catch (error) {
-                res.writeHead(500, { 'Content-Type': 'application/json' });
-                res.end(JSON.stringify({ status: 'error', message: error.message }));
+                const errorResponse = {
+                    status: 'error',
+                    message: 'Parsing Failed: Invalid SWIFT Message Format',
+                    details: error.message,
+                    traceId: traceId,
+                    timestamp: timestamp
+                };
+                res.writeHead(400, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify(errorResponse));
             }
         });
     } else if (req.method === 'GET' && req.url === '/swift') {
