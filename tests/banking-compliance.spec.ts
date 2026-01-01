@@ -132,4 +132,41 @@ test.describe('Banking Compliance Tests (ISO 20022 & RBI)', () => {
         expect(allErrors).toMatch(/AML Alert|Sanctioned|Blocked/i);
     });
 
+    test('BTC005: Fraud Prevention - Replay Attack (Idempotency)', async ({ request }) => {
+        test.setTimeout(45000);
+        console.log('BTC005: Fraud - Verifying Replay Attack Rejection');
+
+        // 1. Generate Valid MT103
+        const validMessage = await generateValidMT103();
+
+        // 2. Submit First Time (Success)
+        const response1 = await request.post('/swift', {
+            data: validMessage,
+            headers: {
+                'Content-Type': 'text/plain',
+                'X-Simulated-Time': '2023-10-25T10:00:00Z'
+            }
+        });
+        expect(response1.ok()).toBeTruthy();
+
+        console.log('First submission successful. Attempting Replay Attack...');
+
+        // 3. Submit SAME Message Immediately (Replay)
+        const response2 = await request.post('/swift', {
+            data: validMessage,
+            headers: {
+                'Content-Type': 'text/plain',
+                'X-Simulated-Time': '2023-10-25T10:00:00Z'
+            }
+        });
+
+        // 4. Verify Rejection
+        const status = response2.status();
+        expect([409, 400]).toContain(status); // Expect Conflict or Bad Request
+
+        const json = await response2.json();
+        expect(json.status).toBe('failed');
+        expect(JSON.stringify(json.errors)).toMatch(/Duplicate|Reference already exists/i);
+    });
+
 });
